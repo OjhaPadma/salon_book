@@ -1,102 +1,111 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:salon_book/core/constants/app_spacing.dart';
 import 'package:salon_book/core/constants/app_user.dart';
 import 'package:salon_book/core/di/injection.dart';
-import 'package:salon_book/core/utils/date_time_utils.dart';
 import 'package:salon_book/core/widgets/empty_state.dart';
 import 'package:salon_book/domain/models/models.dart';
 import 'package:salon_book/domain/repositories/booking_repository.dart';
 import 'package:salon_book/domain/repositories/salon_repository.dart';
+import 'package:salon_book/features/appointments/presentation/widgets/booking_tile.dart';
 
 class BookingsScreen extends StatelessWidget {
   const BookingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final bookingRepository = getIt<BookingRepository>();
-    final salonRepository = getIt<SalonRepository>();
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Bookings'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Upcoming'),
+              Tab(text: 'Past'),
+            ],
+          ),
+        ),
+        body: StreamBuilder<List<Booking>>(
+          stream: getIt<BookingRepository>().watchByClient(AppUser.guestClientId),
+          builder: (context, snapshot) {
+            final bookings = snapshot.data ?? const <Booking>[];
+            return FutureBuilder<List<Salon>>(
+              future: getIt<SalonRepository>().getSalons(),
+              builder: (context, salonSnapshot) {
+                final salons = {for (final salon in salonSnapshot.data ?? const <Salon>[]) salon.id: salon};
+                final upcoming = bookings
+                    .where((booking) => booking.status == BookingStatus.upcoming)
+                    .toList()
+                  ..sort((a, b) => a.start.compareTo(b.start));
+                final past = bookings
+                    .where((booking) => booking.status != BookingStatus.upcoming)
+                    .toList()
+                  ..sort((a, b) => b.start.compareTo(a.start));
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Bookings')),
-      body: StreamBuilder<List<Booking>>(
-        stream: bookingRepository.watchByClient(AppUser.guestClientId),
-        builder: (context, snapshot) {
-          final bookings = snapshot.data ?? const <Booking>[];
-          if (bookings.isEmpty) {
-            return const EmptyState(
-              icon: Icons.event_available_outlined,
-              title: 'No appointments yet',
-              message: 'When you book a chair, it will appear here — upcoming first, then the past.',
+                return TabBarView(
+                  children: [
+                    _BookingList(
+                      emptyTitle: 'No appointments yet',
+                      emptyMessage: 'When you book a chair, it will appear here.',
+                      bookings: upcoming,
+                      salons: salons,
+                    ),
+                    _BookingList(
+                      emptyTitle: 'Nothing in the past',
+                      emptyMessage: 'Completed and cancelled visits will show up here.',
+                      bookings: past,
+                      salons: salons,
+                    ),
+                  ],
+                );
+              },
             );
-          }
-
-          final upcoming = bookings.where((booking) => booking.status == BookingStatus.upcoming).toList()
-            ..sort((a, b) => a.start.compareTo(b.start));
-
-          return FutureBuilder<List<Salon>>(
-            future: salonRepository.getSalons(),
-            builder: (context, salonSnapshot) {
-              final salons = {for (final salon in salonSnapshot.data ?? const <Salon>[]) salon.id: salon};
-
-              return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.xxl),
-                itemCount: upcoming.length,
-                separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.md),
-                itemBuilder: (context, index) {
-                  final booking = upcoming[index];
-                  final salon = salons[booking.salonId];
-                  SalonService? service;
-                  Stylist? stylist;
-                  if (salon != null) {
-                    for (final item in salon.services) {
-                      if (item.id == booking.serviceId) service = item;
-                    }
-                    for (final item in salon.stylists) {
-                      if (item.id == booking.stylistId) stylist = item;
-                    }
-                  }
-
-                  return Material(
-                    color: Theme.of(context).colorScheme.surface,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radius),
-                      side: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.7)),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(service?.name ?? 'Appointment', style: Theme.of(context).textTheme.titleLarge),
-                          const SizedBox(height: 4),
-                          Text(
-                            salon?.name ?? '',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Text(
-                            '${DateTimeUtils.formatFullDate(booking.start)} · ${DateTimeUtils.formatTimeRange(booking.start, booking.end)}',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                          if (stylist != null)
-                            Text(
-                              stylist.name,
-                              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
+          },
+        ),
       ),
+    );
+  }
+}
+
+class _BookingList extends StatelessWidget {
+  const _BookingList({
+    required this.emptyTitle,
+    required this.emptyMessage,
+    required this.bookings,
+    required this.salons,
+  });
+
+  final String emptyTitle;
+  final String emptyMessage;
+  final List<Booking> bookings;
+  final Map<String, Salon> salons;
+
+  @override
+  Widget build(BuildContext context) {
+    if (bookings.isEmpty) {
+      return EmptyState(
+        icon: Icons.event_available_outlined,
+        title: emptyTitle,
+        message: emptyMessage,
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xxl),
+      itemCount: bookings.length,
+      separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.md),
+      itemBuilder: (context, index) {
+        final booking = bookings[index];
+        final lookup = BookingLookup.from(salons, booking);
+        return BookingTile(
+          booking: booking,
+          salon: lookup.salon,
+          service: lookup.service,
+          stylist: lookup.stylist,
+          onTap: () => context.push('/bookings/${booking.id}'),
+        );
+      },
     );
   }
 }

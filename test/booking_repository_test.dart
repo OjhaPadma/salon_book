@@ -40,6 +40,43 @@ void main() {
     expect(second.stylistId, 'stylist-arun');
   });
 
+  test('cancel marks booking as cancelled', () async {
+    final created = await book(stylistId: 'stylist-meera');
+    final cancelled = await repository.cancelBooking(created.id);
+    expect(cancelled.status, BookingStatus.cancelled);
+    expect(book(stylistId: 'stylist-meera'), completes);
+  });
+
+  test('reschedule moves a booking to a new slot', () async {
+    final created = await book(stylistId: 'stylist-meera');
+    final moved = await repository.rescheduleBooking(
+      bookingId: created.id,
+      newStart: DateTime(2026, 9, 7, 14),
+      durationMinutes: 60,
+      stylists: stylists,
+    );
+    expect(moved.start, DateTime(2026, 9, 7, 14));
+    expect(moved.status, BookingStatus.upcoming);
+  });
+
+  test('syncStatuses completes past upcoming bookings', () async {
+    repository = InMemoryBookingRepository(
+      clock: () => DateTime(2026, 9, 7, 12),
+    );
+    await repository.createBooking(
+      salonId: 'salon-noor',
+      serviceId: 'noor-cut',
+      clientId: 'guest-client',
+      start: DateTime(2026, 9, 7, 9),
+      durationMinutes: 60,
+      stylists: stylists,
+      preferredStylistId: 'stylist-meera',
+    );
+    await repository.syncStatuses(now: DateTime(2026, 9, 7, 12));
+    final bookings = await repository.getBookings();
+    expect(bookings.single.status, BookingStatus.completed);
+  });
+
   test('booked slot disappears from availability for that stylist', () async {
     await book(stylistId: 'stylist-meera');
     const engine = AvailabilityEngine();

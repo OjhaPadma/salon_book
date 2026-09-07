@@ -75,5 +75,6 @@ void main() {
     await tester.pump();
 
     expect(find.text('No appointments yet'), findsOneWidget);
+    expect(find.text('Upcoming'), findsOneWidget);
   });
 }

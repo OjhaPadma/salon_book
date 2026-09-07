@@ -5,6 +5,7 @@ import 'package:salon_book/core/di/injection.dart';
 import 'package:salon_book/core/routing/app_shell.dart';
 import 'package:salon_book/domain/repositories/booking_repository.dart';
 import 'package:salon_book/domain/repositories/salon_repository.dart';
+import 'package:salon_book/features/appointments/presentation/screens/appointment_detail_screen.dart';
 import 'package:salon_book/features/appointments/presentation/screens/bookings_screen.dart';
 import 'package:salon_book/features/booking/domain/availability_engine.dart';
 import 'package:salon_book/features/booking/presentation/bloc/booking_bloc.dart';
@@ -64,7 +65,34 @@ GoRouter createAppRouter() {
             ],
           ),
           StatefulShellBranch(
-            routes: [GoRoute(path: '/bookings', builder: (context, state) => const BookingsScreen())],
+            routes: [
+              GoRoute(
+                path: '/bookings',
+                builder: (context, state) => const BookingsScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':bookingId',
+                    parentNavigatorKey: rootNavigatorKey,
+                    builder: (context, state) =>
+                        AppointmentDetailScreen(bookingId: state.pathParameters['bookingId']!),
+                    routes: [
+                      GoRoute(
+                        path: 'reschedule',
+                        parentNavigatorKey: rootNavigatorKey,
+                        builder: (context, state) => BlocProvider(
+                          create: (_) => BookingBloc(
+                            salonRepository: getIt<SalonRepository>(),
+                            bookingRepository: getIt<BookingRepository>(),
+                            engine: getIt<AvailabilityEngine>(),
+                          )..add(BookingRescheduleStarted(state.pathParameters['bookingId']!)),
+                          child: const BookingFlowScreen(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ),
           StatefulShellBranch(
             routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())],

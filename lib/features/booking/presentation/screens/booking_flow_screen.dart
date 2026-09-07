@@ -43,7 +43,7 @@ class BookingFlowScreen extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(_title(state.step)),
+            title: Text(_title(state.step, isRescheduling: state.isRescheduling)),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: () {
@@ -56,7 +56,8 @@ class BookingFlowScreen extends StatelessWidget {
             ),
           ),
           body: switch (state.step) {
-            BookingStep.stylist => _StylistStep(state: state),
+            BookingStep.stylist when !state.isRescheduling => _StylistStep(state: state),
+            BookingStep.stylist => _ScheduleStep(state: state),
             BookingStep.schedule => _ScheduleStep(state: state),
             BookingStep.confirm => _ConfirmStep(state: state),
             BookingStep.success => _SuccessStep(state: state),
@@ -66,12 +67,12 @@ class BookingFlowScreen extends StatelessWidget {
     );
   }
 
-  String _title(BookingStep step) {
+  String _title(BookingStep step, {required bool isRescheduling}) {
     return switch (step) {
-      BookingStep.stylist => 'Book',
+      BookingStep.stylist => isRescheduling ? 'Reschedule' : 'Book',
       BookingStep.schedule => 'Time',
-      BookingStep.confirm => 'Confirm',
-      BookingStep.success => 'Booked',
+      BookingStep.confirm => isRescheduling ? 'Confirm change' : 'Confirm',
+      BookingStep.success => isRescheduling ? 'Updated' : 'Booked',
     };
   }
 }
@@ -224,7 +225,10 @@ class _ConfirmStep extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.xxl),
       children: [
-        Text('Does this look right?', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          state.isRescheduling ? 'Pick a new time' : 'Does this look right?',
+          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: AppSpacing.lg),
         _SummaryRow(label: 'Salon', value: salon.name),
         _SummaryRow(label: 'Service', value: service.name),
@@ -241,7 +245,7 @@ class _ConfirmStep extends StatelessWidget {
         const SizedBox(height: AppSpacing.xl),
         FilledButton(
           onPressed: state.isSubmitting ? null : () => context.read<BookingBloc>().add(const BookingSubmitted()),
-          child: Text(state.isSubmitting ? 'Holding slot…' : 'Confirm booking'),
+          child: Text(state.isSubmitting ? 'Saving…' : state.isRescheduling ? 'Confirm change' : 'Confirm booking'),
         ),
       ],
     );
@@ -289,7 +293,7 @@ class _SuccessStep extends StatelessWidget {
           Icon(Icons.check_circle_outline, size: 56, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            'You’re booked.',
+            state.isRescheduling ? 'Your appointment moved.' : 'You’re booked.',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: AppSpacing.sm),

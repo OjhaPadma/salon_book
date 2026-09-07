@@ -17,6 +17,7 @@ class BookingState extends Equatable {
     this.confirmedBooking,
     this.errorMessage,
     this.conflictMessage,
+    this.rescheduleBookingId,
   });
 
   final BookingStep step;
@@ -31,6 +32,9 @@ class BookingState extends Equatable {
   final Booking? confirmedBooking;
   final String? errorMessage;
   final String? conflictMessage;
+  final String? rescheduleBookingId;
+
+  bool get isRescheduling => rescheduleBookingId != null;
 
   Stylist? get selectedStylist {
     final id = selectedSlot?.stylistId ?? preferredStylistId;
@@ -59,6 +63,7 @@ class BookingState extends Equatable {
     Booking? confirmedBooking,
     String? errorMessage,
     String? conflictMessage,
+    String? rescheduleBookingId,
     bool clearPreferredStylist = false,
     bool clearSelectedSlot = false,
     bool clearConflict = false,
@@ -77,6 +82,7 @@ class BookingState extends Equatable {
       confirmedBooking: confirmedBooking ?? this.confirmedBooking,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
       conflictMessage: clearConflict ? null : conflictMessage ?? this.conflictMessage,
+      rescheduleBookingId: rescheduleBookingId ?? this.rescheduleBookingId,
     );
   }
 
@@ -94,5 +100,6 @@ class BookingState extends Equatable {
     confirmedBooking,
     errorMessage,
     conflictMessage,
+    rescheduleBookingId,
   ];
 }

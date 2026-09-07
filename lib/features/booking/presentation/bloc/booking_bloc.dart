@@ -18,6 +18,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
   }) : clock = clock ?? DateTime.now,
        super(const BookingState()) {
     on<BookingStarted>(_onStarted);
+    on<BookingRescheduleStarted>(_onRescheduleStarted);
     on<BookingStylistChosen>(_onStylistChosen);
     on<BookingContinueToSchedule>(_onContinueToSchedule);
     on<BookingDayChosen>(_onDayChosen);
@@ -56,6 +57,41 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         selectedDay: engine.firstOpenDay(salon.stylists, from: clock()),
       ),
     );
+  }
+
+  Future<void> _onRescheduleStarted(BookingRescheduleStarted event, Emitter<BookingState> emit) async {
+    emit(const BookingState(isLoading: true));
+    final booking = await bookingRepository.getBookingById(event.bookingId);
+    if (booking == null || booking.status != BookingStatus.upcoming) {
+      emit(const BookingState(isLoading: false, errorMessage: 'That appointment cannot be rescheduled.'));
+      return;
+    }
+    final salon = await salonRepository.getSalonById(booking.salonId);
+    SalonService? service;
+    if (salon != null) {
+      for (final item in salon.services) {
+        if (item.id == booking.serviceId) {
+          service = item;
+          break;
+        }
+      }
+    }
+    if (salon == null || service == null) {
+      emit(const BookingState(isLoading: false, errorMessage: 'That appointment cannot be rescheduled.'));
+      return;
+    }
+    emit(
+      BookingState(
+        isLoading: false,
+        step: BookingStep.schedule,
+        rescheduleBookingId: booking.id,
+        salon: salon,
+        service: service,
+        preferredStylistId: booking.stylistId,
+        selectedDay: engine.firstOpenDay(salon.stylists, from: clock()),
+      ),
+    );
+    await _reloadSlots(emit);
   }
 
   void _onStylistChosen(BookingStylistChosen event, Emitter<BookingState> emit) {
@@ -102,15 +138,22 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
 
     emit(state.copyWith(isSubmitting: true, clearConflict: true, clearError: true));
     try {
-      final booking = await bookingRepository.createBooking(
-        salonId: salon.id,
-        serviceId: service.id,
-        clientId: AppUser.guestClientId,
-        start: slot.start,
-        durationMinutes: service.durationMinutes,
-        stylists: salon.stylists,
-        preferredStylistId: state.preferredStylistId,
-      );
+      final booking = state.isRescheduling
+          ? await bookingRepository.rescheduleBooking(
+              bookingId: state.rescheduleBookingId!,
+              newStart: slot.start,
+              durationMinutes: service.durationMinutes,
+              stylists: salon.stylists,
+            )
+          : await bookingRepository.createBooking(
+              salonId: salon.id,
+              serviceId: service.id,
+              clientId: AppUser.guestClientId,
+              start: slot.start,
+              durationMinutes: service.durationMinutes,
+              stylists: salon.stylists,
+              preferredStylistId: state.preferredStylistId,
+            );
       emit(
         state.copyWith(
           isSubmitting: false,
@@ -152,20 +195,23 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     if (salon == null || service == null || day == null) return;
 
     final bookings = await bookingRepository.getBookings();
+    final activeBookings = state.rescheduleBookingId == null
+        ? bookings
+        : bookings.where((booking) => booking.id != state.rescheduleBookingId).toList(growable: false);
     final now = clock();
     final slots = state.preferredStylistId == null
         ? engine.slotsForAnyStylist(
             stylists: salon.stylists,
             durationMinutes: service.durationMinutes,
             day: day,
-            bookings: bookings,
+            bookings: activeBookings,
             now: now,
           )
         : engine.slotsForStylist(
             stylist: salon.stylists.firstWhere((stylist) => stylist.id == state.preferredStylistId),
             durationMinutes: service.durationMinutes,
             day: day,
-            bookings: bookings,
+            bookings: activeBookings,
             now: now,
           );
     emit(state.copyWith(slots: slots));

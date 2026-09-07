@@ -25,6 +25,30 @@ class Booking extends Equatable {
   final BookingStatus status;
   final String? notes;
 
+  Booking copyWith({
+    String? id,
+    String? salonId,
+    String? serviceId,
+    String? stylistId,
+    String? clientId,
+    DateTime? start,
+    DateTime? end,
+    BookingStatus? status,
+    String? notes,
+  }) {
+    return Booking(
+      id: id ?? this.id,
+      salonId: salonId ?? this.salonId,
+      serviceId: serviceId ?? this.serviceId,
+      stylistId: stylistId ?? this.stylistId,
+      clientId: clientId ?? this.clientId,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      status: status ?? this.status,
+      notes: notes ?? this.notes,
+    );
+  }
+
   @override
   List<Object?> get props => [
     id,

@@ -18,6 +18,15 @@ class BookingStarted extends BookingEvent {
   List<Object?> get props => [salonId, serviceId];
 }
 
+class BookingRescheduleStarted extends BookingEvent {
+  const BookingRescheduleStarted(this.bookingId);
+
+  final String bookingId;
+
+  @override
+  List<Object?> get props => [bookingId];
+}
+
 class BookingStylistChosen extends BookingEvent {
   const BookingStylistChosen(this.stylistId);
 

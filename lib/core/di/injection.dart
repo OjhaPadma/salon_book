@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:salon_book/core/notifications/appointment_notifier.dart';
+import 'package:salon_book/core/notifications/local_appointment_notifier.dart';
 import 'package:salon_book/data/repositories/in_memory_booking_repository.dart';
 import 'package:salon_book/data/repositories/seed_salon_repository.dart';
 import 'package:salon_book/domain/repositories/booking_repository.dart';
@@ -12,8 +15,24 @@ Future<void> configureDependencies() async {
 
   getIt
     ..registerLazySingleton<AvailabilityEngine>(AvailabilityEngine.new)
-    ..registerLazySingleton<SalonRepository>(SeedSalonRepository.new)
-    ..registerLazySingleton<BookingRepository>(
-      () => InMemoryBookingRepository(engine: getIt<AvailabilityEngine>()),
-    );
+    ..registerLazySingleton<SalonRepository>(SeedSalonRepository.new);
+
+  if (!kIsWeb) {
+    try {
+      final notifier = await LocalAppointmentNotifier.create();
+      getIt.registerSingleton<AppointmentNotifier>(notifier);
+    } on Object {
+      getIt.registerSingleton<AppointmentNotifier>(NoOpAppointmentNotifier());
+    }
+  } else {
+    getIt.registerSingleton<AppointmentNotifier>(NoOpAppointmentNotifier());
+  }
+
+  getIt.registerLazySingleton<BookingRepository>(
+    () => InMemoryBookingRepository(
+      engine: getIt<AvailabilityEngine>(),
+      notifier: getIt<AppointmentNotifier>(),
+      salonRepository: getIt<SalonRepository>(),
+    ),
+  );
 }
