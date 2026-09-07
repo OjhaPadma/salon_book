@@ -1,30 +1,38 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:google_fonts/google_fonts.dart';
+import 'package:salon_book/core/di/injection.dart';
 import 'package:salon_book/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  TestWidgetsFlutterBinding.ensureInitialized();
+  GoogleFonts.config.allowRuntimeFetching = false;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  setUp(() async {
+    await getIt.reset();
+    await configureDependencies();
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  testWidgets('cold start lands on Discover with navigation', (tester) async {
+    await tester.pumpWidget(const GlamSlotApp());
+    await tester.pump();
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Find a quiet chair.'), findsOneWidget);
+    expect(find.text('Discover'), findsWidgets);
+    expect(find.text('Bookings'), findsWidgets);
+    expect(find.text('Profile'), findsWidgets);
+    expect(find.text('Atelier Noor'), findsOneWidget);
+  });
+
+  testWidgets('bookings tab shows empty state', (tester) async {
+    await tester.pumpWidget(const GlamSlotApp());
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.text('Bookings').last);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('No appointments yet'), findsOneWidget);
   });
 }
