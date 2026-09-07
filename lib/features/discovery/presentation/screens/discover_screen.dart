@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:salon_book/core/constants/app_spacing.dart';
+import 'package:salon_book/core/widgets/branded_header.dart';
 import 'package:salon_book/core/widgets/empty_state.dart';
 import 'package:salon_book/core/widgets/skeleton_box.dart';
 import 'package:salon_book/features/discovery/presentation/cubit/discovery_cubit.dart';
@@ -33,8 +34,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       body: SafeArea(
         child: BlocConsumer<DiscoveryCubit, DiscoveryState>(
@@ -45,35 +44,25 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             }
           },
           builder: (context, state) {
-            return CustomScrollView(
-              slivers: [
+            return RefreshIndicator(
+              onRefresh: () => context.read<DiscoveryCubit>().load(),
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.sm),
                   sliver: SliverToBoxAdapter(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'GlamSlot',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: theme.colorScheme.primary,
-                            letterSpacing: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          'Find a quiet chair.',
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: -0.8,
-                          ),
-                        ),
+                        const BrandedHeader(subtitle: 'Find a quiet chair.'),
                         const SizedBox(height: AppSpacing.lg),
                         TextField(
                           controller: _searchController,
                           textInputAction: TextInputAction.search,
                           onChanged: context.read<DiscoveryCubit>().search,
                           decoration: InputDecoration(
+                            labelText: 'Search salons',
                             hintText: 'Search salons or services',
                             prefixIcon: const Icon(Icons.search_rounded),
                             suffixIcon: state.query.isEmpty
@@ -102,7 +91,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     child: EmptyState(
                       icon: Icons.wifi_off_rounded,
                       title: 'Couldn’t load salons',
-                      message: 'Check your connection and try again.',
+                      message: state.errorMessage ?? 'Check your connection and try again.',
                       action: FilledButton(
                         onPressed: () => context.read<DiscoveryCubit>().load(),
                         child: const Text('Retry'),
@@ -140,6 +129,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     ),
                   ),
               ],
+              ),
             );
           },
         ),

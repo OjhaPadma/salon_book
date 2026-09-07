@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:salon_book/core/widgets/skeleton_box.dart';
 
 class NetworkImageFrame extends StatelessWidget {
   const NetworkImageFrame({
@@ -31,6 +32,14 @@ class NetworkImageFrame extends StatelessWidget {
             height: height,
             width: resolvedWidth,
             fit: fit,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return SkeletonBox(
+                height: height ?? 120,
+                width: resolvedWidth,
+                radius: borderRadius,
+              );
+            },
             errorBuilder: (context, error, stackTrace) {
               return ColoredBox(
                 color: fallbackColor,

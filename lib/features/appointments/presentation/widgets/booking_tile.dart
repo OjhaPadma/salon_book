@@ -15,52 +15,74 @@ class BookingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radius),
-        side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.7)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(service?.name ?? 'Appointment', style: theme.textTheme.titleLarge),
-                  ),
-                  if (booking.status == BookingStatus.cancelled)
-                    Text(
-                      'Cancelled',
-                      style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.error),
+    final statusLabel = _statusLabel(booking.status);
+    final label = [
+      service?.name ?? 'Appointment',
+      if (salon != null) 'at ${salon!.name}',
+      DateTimeUtils.formatFullDate(booking.start),
+    ].join(', ');
+
+    return Semantics(
+      button: onTap != null,
+      label: label,
+      child: Material(
+        color: theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radius),
+          side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.7)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(service?.name ?? 'Appointment', style: theme.textTheme.titleLarge),
                     ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                salon?.name ?? '',
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                '${DateTimeUtils.formatFullDate(booking.start)} · ${DateTimeUtils.formatTimeRange(booking.start, booking.end)}',
-                style: theme.textTheme.bodyMedium,
-              ),
-              if (stylist != null)
-                Text(
-                  stylist!.name,
-                  style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    if (statusLabel != null) _statusStyle(context, statusLabel),
+                  ],
                 ),
-            ],
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  salon?.name ?? '',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  '${DateTimeUtils.formatFullDate(booking.start)} · ${DateTimeUtils.formatTimeRange(booking.start, booking.end)}',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                if (stylist != null)
+                  Text(
+                    stylist!.name,
+                    style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  String? _statusLabel(BookingStatus status) {
+    return switch (status) {
+      BookingStatus.cancelled => 'Cancelled',
+      BookingStatus.completed => 'Completed',
+      BookingStatus.noShow => 'No-show',
+      BookingStatus.upcoming => null,
+    };
+  }
+
+  Widget _statusStyle(BuildContext context, String label) {
+    final theme = Theme.of(context);
+    final color = label == 'Cancelled' ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant;
+    return Text(label, style: theme.textTheme.labelMedium?.copyWith(color: color));
   }
 }
 

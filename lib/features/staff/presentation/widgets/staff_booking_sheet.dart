@@ -26,11 +26,18 @@ class _StaffBookingSheet extends StatefulWidget {
 class _StaffBookingSheetState extends State<_StaffBookingSheet> {
   bool _busy = false;
 
-  Future<void> _update(Future<Booking> Function() action) async {
+  Future<void> _update(Future<Booking> Function() action, String successMessage) async {
     setState(() => _busy = true);
     try {
       await action();
-      if (mounted) Navigator.pop(context);
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMessage)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update booking. Try again.')),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -60,12 +67,16 @@ class _StaffBookingSheetState extends State<_StaffBookingSheet> {
           const SizedBox(height: AppSpacing.lg),
           if (booking.status == BookingStatus.upcoming) ...[
             FilledButton(
-              onPressed: _busy ? null : () => _update(() => repo.markCompleted(booking.id)),
+              onPressed: _busy
+                  ? null
+                  : () => _update(() => repo.markCompleted(booking.id), 'Marked complete'),
               child: Text(_busy ? 'Saving…' : 'Mark complete'),
             ),
             const SizedBox(height: AppSpacing.sm),
             OutlinedButton(
-              onPressed: _busy ? null : () => _update(() => repo.markNoShow(booking.id)),
+              onPressed: _busy
+                  ? null
+                  : () => _update(() => repo.markNoShow(booking.id), 'Marked as no-show'),
               child: const Text('Mark no-show'),
             ),
           ] else

@@ -78,8 +78,7 @@ void main() {
     await tester.pump();
 
     await tester.tap(find.text('Bookings').last);
-    await tester.pump();
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('No appointments yet'), findsOneWidget);
     expect(find.text('Upcoming'), findsOneWidget);

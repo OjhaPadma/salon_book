@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:salon_book/core/constants/app_spacing.dart';
 import 'package:salon_book/core/di/injection.dart';
+import 'package:salon_book/core/widgets/app_loading_indicator.dart';
 import 'package:salon_book/features/auth/presentation/auth_controller.dart';
 import 'package:salon_book/core/widgets/empty_state.dart';
 import 'package:salon_book/domain/models/models.dart';
@@ -29,10 +30,18 @@ class BookingsScreen extends StatelessWidget {
         body: StreamBuilder<List<Booking>>(
           stream: getIt<BookingRepository>().watchByClient(getIt<AuthController>().clientId),
           builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+              return const AppLoadingIndicator();
+            }
+
             final bookings = snapshot.data ?? const <Booking>[];
             return FutureBuilder<List<Salon>>(
               future: getIt<SalonRepository>().getSalons(),
               builder: (context, salonSnapshot) {
+                if (salonSnapshot.connectionState == ConnectionState.waiting && !salonSnapshot.hasData) {
+                  return const AppLoadingIndicator();
+                }
+
                 final salons = {for (final salon in salonSnapshot.data ?? const <Salon>[]) salon.id: salon};
                 final upcoming = bookings
                     .where((booking) => booking.status == BookingStatus.upcoming)

@@ -5,6 +5,7 @@ import 'package:salon_book/core/constants/app_spacing.dart';
 import 'package:salon_book/core/theme/app_colors.dart';
 import 'package:salon_book/core/utils/date_time_utils.dart';
 import 'package:salon_book/core/utils/formatters.dart';
+import 'package:salon_book/core/widgets/app_loading_indicator.dart';
 import 'package:salon_book/core/widgets/empty_state.dart';
 import 'package:salon_book/core/widgets/section_header.dart';
 import 'package:salon_book/features/booking/presentation/bloc/booking_bloc.dart';
@@ -28,7 +29,7 @@ class BookingFlowScreen extends StatelessWidget {
       },
       builder: (context, state) {
         if (state.isLoading) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(body: AppLoadingIndicator());
         }
         if (state.salon == null || state.service == null) {
           return Scaffold(
@@ -45,6 +46,7 @@ class BookingFlowScreen extends StatelessWidget {
           appBar: AppBar(
             title: Text(_title(state.step, isRescheduling: state.isRescheduling)),
             leading: IconButton(
+              tooltip: 'Back',
               icon: const Icon(Icons.arrow_back),
               onPressed: () {
                 if (state.step == BookingStep.stylist || state.step == BookingStep.success) {
@@ -242,6 +244,13 @@ class _ConfirmStep extends StatelessWidget {
           'Payment stays off for now. Confirm to hold the chair.',
           style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
+        if (state.errorMessage != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            state.errorMessage!,
+            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+          ),
+        ],
         const SizedBox(height: AppSpacing.xl),
         FilledButton(
           onPressed: state.isSubmitting ? null : () => context.read<BookingBloc>().add(const BookingSubmitted()),
@@ -309,6 +318,11 @@ class _SuccessStep extends StatelessWidget {
           FilledButton(
             onPressed: () => context.go('/bookings'),
             child: const Text('View bookings'),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          TextButton(
+            onPressed: () => context.go('/discover/salons/${state.salon!.id}'),
+            child: const Text('Back to salon'),
           ),
         ],
       ),

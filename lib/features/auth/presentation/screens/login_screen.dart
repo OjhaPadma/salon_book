@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:salon_book/core/constants/app_spacing.dart';
+import 'package:salon_book/core/widgets/branded_header.dart';
 import 'package:salon_book/core/di/injection.dart';
 import 'package:salon_book/data/repositories/seed_auth_repository.dart';
 import 'package:salon_book/domain/models/models.dart';
@@ -54,22 +55,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
+      appBar: context.canPop() ? AppBar() : null,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xl, AppSpacing.lg, AppSpacing.xxl),
           children: [
-            Text(
-              'GlamSlot',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.primary,
-                letterSpacing: 1.4,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Sign in',
-              style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
+            const BrandedHeader(subtitle: 'Sign in'),
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Demo accounts for client and staff views.',

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:salon_book/core/constants/app_spacing.dart';
 import 'package:salon_book/core/di/injection.dart';
 import 'package:salon_book/core/utils/date_time_utils.dart';
+import 'package:salon_book/core/widgets/app_loading_indicator.dart';
 import 'package:salon_book/core/widgets/empty_state.dart';
 import 'package:salon_book/domain/models/models.dart';
 import 'package:salon_book/domain/repositories/booking_repository.dart';
@@ -78,9 +79,10 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
         builder: (context, snapshot) {
           final salon = _salon;
           if (salon == null) {
-            return const Center(child: CircularProgressIndicator());
+            return const AppLoadingIndicator();
           }
 
+          final isLoadingBookings = snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData;
           final dayBookings = (snapshot.data ?? const <Booking>[])
               .where(
                 (booking) =>
@@ -106,7 +108,11 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
               const SizedBox(height: AppSpacing.lg),
               Row(
                 children: [
-                  IconButton(onPressed: () => _shiftDay(-1), icon: const Icon(Icons.chevron_left_rounded)),
+                  IconButton(
+                    tooltip: 'Previous day',
+                    onPressed: () => _shiftDay(-1),
+                    icon: const Icon(Icons.chevron_left_rounded),
+                  ),
                   Expanded(
                     child: Text(
                       DateTimeUtils.formatFullDate(_selectedDay),
@@ -114,9 +120,21 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                       style: theme.textTheme.titleMedium,
                     ),
                   ),
-                  IconButton(onPressed: () => _shiftDay(1), icon: const Icon(Icons.chevron_right_rounded)),
+                  IconButton(
+                    tooltip: 'Next day',
+                    onPressed: () => _shiftDay(1),
+                    icon: const Icon(Icons.chevron_right_rounded),
+                  ),
                 ],
               ),
+              if (!isSameDay(_selectedDay, DateTime.now()))
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => setState(() => _selectedDay = DateTimeUtils.startOfDay(DateTime.now())),
+                    child: const Text('Jump to today'),
+                  ),
+                ),
               TableCalendar(
                 firstDay: DateTime.now().subtract(const Duration(days: 7)),
                 lastDay: DateTime.now().add(const Duration(days: 90)),
@@ -150,7 +168,9 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              if (entries.isEmpty)
+              if (isLoadingBookings)
+                const AppLoadingIndicator()
+              else if (entries.isEmpty)
                 const EmptyState(
                   icon: Icons.event_available_outlined,
                   title: 'Clear day',

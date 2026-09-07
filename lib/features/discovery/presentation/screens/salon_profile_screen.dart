@@ -4,6 +4,7 @@ import 'package:salon_book/core/constants/app_spacing.dart';
 import 'package:salon_book/core/di/injection.dart';
 import 'package:salon_book/core/utils/date_time_utils.dart';
 import 'package:salon_book/core/utils/formatters.dart';
+import 'package:salon_book/core/widgets/app_loading_indicator.dart';
 import 'package:salon_book/core/widgets/empty_state.dart';
 import 'package:salon_book/core/widgets/network_image_frame.dart';
 import 'package:salon_book/core/widgets/rating_badge.dart';
@@ -11,18 +12,47 @@ import 'package:salon_book/core/widgets/section_header.dart';
 import 'package:salon_book/domain/models/models.dart';
 import 'package:salon_book/domain/repositories/salon_repository.dart';
 
-class SalonProfileScreen extends StatelessWidget {
+class SalonProfileScreen extends StatefulWidget {
   const SalonProfileScreen({super.key, required this.salonId});
 
   final String salonId;
 
   @override
+  State<SalonProfileScreen> createState() => _SalonProfileScreenState();
+}
+
+class _SalonProfileScreenState extends State<SalonProfileScreen> {
+  late Future<Salon?> _salonFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _salonFuture = getIt<SalonRepository>().getSalonById(widget.salonId);
+  }
+
+  void _reload() {
+    setState(() => _salonFuture = getIt<SalonRepository>().getSalonById(widget.salonId));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<Salon?>(
-      future: getIt<SalonRepository>().getSalonById(salonId),
+      future: _salonFuture,
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(),
+            body: EmptyState(
+              icon: Icons.wifi_off_rounded,
+              title: "Couldn't load salon",
+              message: 'Check your connection and try again.',
+              action: FilledButton(onPressed: _reload, child: const Text('Retry')),
+            ),
+          );
+        }
+
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(body: AppLoadingIndicator());
         }
 
         final salon = snapshot.data;
@@ -87,24 +117,26 @@ class SalonProfileScreen extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               const SectionHeader(title: 'Stylists'),
               ...salon.stylists.map(_StylistTile.new),
-              const SizedBox(height: AppSpacing.lg),
-              const SectionHeader(title: 'Gallery'),
-              SizedBox(
-                height: 120,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: salon.galleryUrls.length,
-                  separatorBuilder: (context, index) => const SizedBox(width: AppSpacing.sm),
-                  itemBuilder: (context, index) {
-                    return NetworkImageFrame(
-                      url: salon.galleryUrls[index],
-                      height: 120,
-                      width: 160,
-                      borderRadius: AppSpacing.radiusSm,
-                    );
-                  },
+              if (salon.galleryUrls.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.lg),
+                const SectionHeader(title: 'Gallery'),
+                SizedBox(
+                  height: 120,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: salon.galleryUrls.length,
+                    separatorBuilder: (context, index) => const SizedBox(width: AppSpacing.sm),
+                    itemBuilder: (context, index) {
+                      return NetworkImageFrame(
+                        url: salon.galleryUrls[index],
+                        height: 120,
+                        width: 160,
+                        borderRadius: AppSpacing.radiusSm,
+                      );
+                    },
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: AppSpacing.xl),
               SectionHeader(
                 title: 'Reviews',

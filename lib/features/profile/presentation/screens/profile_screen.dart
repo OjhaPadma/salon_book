@@ -82,7 +82,7 @@ class ProfileScreen extends StatelessWidget {
                     _ProfileRow(
                       icon: Icons.favorite_border_rounded,
                       label: 'Saved salons',
-                      value: '—',
+                      value: 'Coming soon',
                     ),
                   ],
                 ),
@@ -113,7 +113,25 @@ class _UpcomingCountCard extends StatelessWidget {
     return FutureBuilder<List<Booking>>(
       future: getIt<BookingRepository>().getBookings(clientId: clientId),
       builder: (context, snapshot) {
-        final count = (snapshot.data ?? const <Booking>[])
+        if (!snapshot.hasData) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: AppCard(
+              child: Row(
+                children: [
+                  Expanded(child: Text('Upcoming appointments', style: Theme.of(context).textTheme.titleMedium)),
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final count = snapshot.data!
             .where((booking) => booking.status == BookingStatus.upcoming)
             .length;
         return Padding(

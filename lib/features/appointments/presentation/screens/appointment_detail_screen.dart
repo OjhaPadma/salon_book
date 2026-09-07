@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:salon_book/core/constants/app_spacing.dart';
 import 'package:salon_book/core/di/injection.dart';
+import 'package:salon_book/core/widgets/app_loading_indicator.dart';
 import 'package:salon_book/core/widgets/empty_state.dart';
 import 'package:salon_book/domain/models/models.dart';
 import 'package:salon_book/domain/repositories/booking_repository.dart';
 import 'package:salon_book/domain/repositories/salon_repository.dart';
+import 'package:salon_book/features/auth/presentation/auth_controller.dart';
 import 'package:salon_book/features/appointments/domain/cancellation_policy.dart';
 import 'package:salon_book/features/appointments/presentation/widgets/booking_tile.dart';
 
@@ -39,7 +41,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
       future: bookingRepository.getBookingById(widget.bookingId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(body: AppLoadingIndicator());
         }
 
         final booking = snapshot.data;
@@ -60,6 +62,13 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
             salonRepository.hasReviewForBooking(booking.id),
           ]),
           builder: (context, metaSnapshot) {
+            if (metaSnapshot.connectionState == ConnectionState.waiting) {
+              return Scaffold(
+                appBar: AppBar(title: const Text('Appointment')),
+                body: const AppLoadingIndicator(),
+              );
+            }
+
             final salon = metaSnapshot.data?[0] as Salon?;
             final hasReview = _reviewSubmitted || (metaSnapshot.data?[1] as bool? ?? false);
             final lookup = salon == null ? const BookingLookup() : BookingLookup.from({salon.id: salon}, booking);
@@ -104,6 +113,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                       children: List.generate(5, (index) {
                         final value = index + 1;
                         return IconButton(
+                          tooltip: 'Rate $value stars',
                           onPressed: () => setState(() => _rating = value.toDouble()),
                           icon: Icon(
                             value <= _rating ? Icons.star_rounded : Icons.star_outline_rounded,
@@ -154,27 +164,43 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
     );
     if (confirmed != true || !context.mounted) return;
 
-    await getIt<BookingRepository>().cancelBooking(booking.id);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appointment cancelled')));
-    context.pop();
+    try {
+      await getIt<BookingRepository>().cancelBooking(booking.id);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appointment cancelled')));
+      context.pop();
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not cancel appointment. Try again.')),
+      );
+    }
   }
 
   Future<void> _submitReview(Booking booking, Salon? salon) async {
     if (salon == null) return;
     setState(() => _submittingReview = true);
-    await getIt<SalonRepository>().submitReview(
-      salonId: salon.id,
-      bookingId: booking.id,
-      author: 'Guest',
-      rating: _rating,
-      comment: _commentController.text.trim().isEmpty ? 'A quiet, good visit.' : _commentController.text.trim(),
-    );
-    if (!mounted) return;
-    setState(() {
-      _submittingReview = false;
-      _reviewSubmitted = true;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review submitted')));
+    try {
+      final author = getIt<AuthController>().user.name;
+      await getIt<SalonRepository>().submitReview(
+        salonId: salon.id,
+        bookingId: booking.id,
+        author: author,
+        rating: _rating,
+        comment: _commentController.text.trim().isEmpty ? 'A quiet, good visit.' : _commentController.text.trim(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _submittingReview = false;
+        _reviewSubmitted = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review submitted')));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _submittingReview = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not submit review. Try again.')),
+      );
+    }
   }
 }
