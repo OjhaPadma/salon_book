@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:salon_book/core/constants/app_spacing.dart';
-import 'package:salon_book/core/constants/app_user.dart';
 import 'package:salon_book/core/di/injection.dart';
+import 'package:salon_book/features/auth/presentation/auth_controller.dart';
 import 'package:salon_book/core/widgets/empty_state.dart';
 import 'package:salon_book/domain/models/models.dart';
 import 'package:salon_book/domain/repositories/booking_repository.dart';
@@ -27,7 +27,7 @@ class BookingsScreen extends StatelessWidget {
           ),
         ),
         body: StreamBuilder<List<Booking>>(
-          stream: getIt<BookingRepository>().watchByClient(AppUser.guestClientId),
+          stream: getIt<BookingRepository>().watchByClient(getIt<AuthController>().clientId),
           builder: (context, snapshot) {
             final bookings = snapshot.data ?? const <Booking>[];
             return FutureBuilder<List<Salon>>(

@@ -6,3 +6,5 @@ export 'service.dart';
 export 'stylist.dart';
 export 'time_slot.dart';
 export 'time_window.dart';
+export 'user.dart';
+export 'user_role.dart';

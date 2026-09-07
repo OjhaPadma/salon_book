@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:salon_book/core/constants/app_user.dart';
+import 'package:salon_book/core/di/injection.dart';
+import 'package:salon_book/features/auth/presentation/auth_controller.dart';
 import 'package:salon_book/core/utils/date_time_utils.dart';
 import 'package:salon_book/domain/models/models.dart';
 import 'package:salon_book/domain/repositories/booking_repository.dart';
@@ -15,7 +16,9 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     required this.bookingRepository,
     this.engine = const AvailabilityEngine(),
     DateTime Function()? clock,
+    String? clientId,
   }) : clock = clock ?? DateTime.now,
+       clientId = clientId ?? getIt<AuthController>().clientId,
        super(const BookingState()) {
     on<BookingStarted>(_onStarted);
     on<BookingRescheduleStarted>(_onRescheduleStarted);
@@ -32,6 +35,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
   final BookingRepository bookingRepository;
   final AvailabilityEngine engine;
   final DateTime Function() clock;
+  final String clientId;
 
   Future<void> _onStarted(BookingStarted event, Emitter<BookingState> emit) async {
     emit(const BookingState(isLoading: true));
@@ -148,7 +152,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
           : await bookingRepository.createBooking(
               salonId: salon.id,
               serviceId: service.id,
-              clientId: AppUser.guestClientId,
+              clientId: clientId,
               start: slot.start,
               durationMinutes: service.durationMinutes,
               stylists: salon.stylists,

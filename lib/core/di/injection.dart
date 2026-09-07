@@ -3,9 +3,12 @@ import 'package:get_it/get_it.dart';
 import 'package:salon_book/core/notifications/appointment_notifier.dart';
 import 'package:salon_book/core/notifications/local_appointment_notifier.dart';
 import 'package:salon_book/data/repositories/in_memory_booking_repository.dart';
+import 'package:salon_book/data/repositories/seed_auth_repository.dart';
 import 'package:salon_book/data/repositories/seed_salon_repository.dart';
+import 'package:salon_book/domain/repositories/auth_repository.dart';
 import 'package:salon_book/domain/repositories/booking_repository.dart';
 import 'package:salon_book/domain/repositories/salon_repository.dart';
+import 'package:salon_book/features/auth/presentation/auth_controller.dart';
 import 'package:salon_book/features/booking/domain/availability_engine.dart';
 
 final getIt = GetIt.instance;
@@ -15,7 +18,9 @@ Future<void> configureDependencies() async {
 
   getIt
     ..registerLazySingleton<AvailabilityEngine>(AvailabilityEngine.new)
-    ..registerLazySingleton<SalonRepository>(SeedSalonRepository.new);
+    ..registerLazySingleton<SalonRepository>(SeedSalonRepository.new)
+    ..registerLazySingleton<AuthRepository>(SeedAuthRepository.new)
+    ..registerLazySingleton<AuthController>(() => AuthController(getIt<AuthRepository>()));
 
   if (!kIsWeb) {
     try {

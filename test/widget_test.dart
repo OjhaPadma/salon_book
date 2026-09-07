@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:salon_book/core/di/injection.dart';
+import 'package:salon_book/core/routing/app_router.dart';
+import 'package:salon_book/features/auth/presentation/auth_controller.dart';
 import 'package:salon_book/main.dart';
 
 void main() {
@@ -13,8 +15,13 @@ void main() {
     await configureDependencies();
   });
 
+  Widget testApp() {
+    final auth = getIt<AuthController>();
+    return GlamSlotApp(router: createAppRouter(auth));
+  }
+
   testWidgets('cold start lands on Discover with navigation', (tester) async {
-    await tester.pumpWidget(GlamSlotApp());
+    await tester.pumpWidget(testApp());
     await tester.pump();
     await tester.pump();
 
@@ -26,7 +33,7 @@ void main() {
   });
 
   testWidgets('search narrows the salon list', (tester) async {
-    await tester.pumpWidget(GlamSlotApp());
+    await tester.pumpWidget(testApp());
     await tester.pump();
     await tester.pump();
 
@@ -38,7 +45,7 @@ void main() {
   });
 
   testWidgets('opening a salon starts booking from a service', (tester) async {
-    await tester.pumpWidget(GlamSlotApp());
+    await tester.pumpWidget(testApp());
     await tester.pump();
     await tester.pump();
 
@@ -66,7 +73,7 @@ void main() {
   });
 
   testWidgets('bookings tab shows empty state', (tester) async {
-    await tester.pumpWidget(GlamSlotApp());
+    await tester.pumpWidget(testApp());
     await tester.pump();
     await tester.pump();
 
@@ -76,5 +83,21 @@ void main() {
 
     expect(find.text('No appointments yet'), findsOneWidget);
     expect(find.text('Upcoming'), findsOneWidget);
+  });
+
+  testWidgets('staff sign-in lands on staff home', (tester) async {
+    await tester.pumpWidget(testApp());
+    await tester.pump();
+    await tester.pump();
+
+    await getIt<AuthController>().signIn(
+      email: 'staff@glamslot.com',
+      password: 'staff',
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Today'), findsOneWidget);
+    expect(find.text('Hello, Meera'), findsOneWidget);
   });
 }

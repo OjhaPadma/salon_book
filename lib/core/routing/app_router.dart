@@ -3,10 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:salon_book/core/di/injection.dart';
 import 'package:salon_book/core/routing/app_shell.dart';
+import 'package:salon_book/core/routing/auth_redirect.dart';
 import 'package:salon_book/domain/repositories/booking_repository.dart';
 import 'package:salon_book/domain/repositories/salon_repository.dart';
 import 'package:salon_book/features/appointments/presentation/screens/appointment_detail_screen.dart';
 import 'package:salon_book/features/appointments/presentation/screens/bookings_screen.dart';
+import 'package:salon_book/features/auth/presentation/auth_controller.dart';
+import 'package:salon_book/features/auth/presentation/screens/login_screen.dart';
 import 'package:salon_book/features/booking/domain/availability_engine.dart';
 import 'package:salon_book/features/booking/presentation/bloc/booking_bloc.dart';
 import 'package:salon_book/features/booking/presentation/bloc/booking_event.dart';
@@ -15,14 +18,27 @@ import 'package:salon_book/features/discovery/presentation/cubit/discovery_cubit
 import 'package:salon_book/features/discovery/presentation/screens/discover_screen.dart';
 import 'package:salon_book/features/discovery/presentation/screens/salon_profile_screen.dart';
 import 'package:salon_book/features/profile/presentation/screens/profile_screen.dart';
+import 'package:salon_book/features/staff/presentation/screens/staff_home_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
-GoRouter createAppRouter() {
+GoRouter createAppRouter(AuthController auth) {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/discover',
+    refreshListenable: auth,
+    redirect: (context, state) => authRedirect(state, auth.user),
     routes: [
+      GoRoute(
+        path: '/login',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/staff',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const StaffHomeScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
         branches: [
@@ -31,7 +47,7 @@ GoRouter createAppRouter() {
               GoRoute(
                 path: '/discover',
                 builder: (context, state) => BlocProvider(
-                  create: (_) => DiscoveryCubit(getIt())..load(),
+                  create: (_) => DiscoveryCubit(getIt<SalonRepository>())..load(),
                   child: const DiscoverScreen(),
                 ),
                 routes: [
@@ -49,6 +65,7 @@ GoRouter createAppRouter() {
                             salonRepository: getIt<SalonRepository>(),
                             bookingRepository: getIt<BookingRepository>(),
                             engine: getIt<AvailabilityEngine>(),
+                            clientId: getIt<AuthController>().clientId,
                           )..add(
                             BookingStarted(
                               salonId: state.pathParameters['salonId']!,
@@ -84,6 +101,7 @@ GoRouter createAppRouter() {
                             salonRepository: getIt<SalonRepository>(),
                             bookingRepository: getIt<BookingRepository>(),
                             engine: getIt<AvailabilityEngine>(),
+                            clientId: getIt<AuthController>().clientId,
                           )..add(BookingRescheduleStarted(state.pathParameters['bookingId']!)),
                           child: const BookingFlowScreen(),
                         ),
