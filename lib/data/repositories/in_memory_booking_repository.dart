@@ -53,6 +53,29 @@ class InMemoryBookingRepository implements BookingRepository {
   }
 
   @override
+  Stream<List<Booking>> watchBySalon(String salonId) async* {
+    yield await getBookingsForSalon(salonId);
+    yield* _controller.stream.map(
+      (bookings) => bookings.where((booking) => booking.salonId == salonId).toList(growable: false),
+    );
+  }
+
+  @override
+  Future<List<Booking>> getBookingsForSalon(String salonId, {DateTime? day}) async {
+    await syncStatuses();
+    return _bookings
+        .where((booking) {
+          if (booking.salonId != salonId) return false;
+          if (booking.status == BookingStatus.cancelled) return false;
+          if (day != null && DateTimeUtils.startOfDay(booking.start) != DateTimeUtils.startOfDay(day)) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
+  }
+
+  @override
   Stream<List<Booking>> watchByClient(String clientId) async* {
     yield await getBookings(clientId: clientId);
     yield* _controller.stream.map(
@@ -161,6 +184,33 @@ class InMemoryBookingRepository implements BookingRepository {
     _bookings[index] = updated;
     _emit();
     await _scheduleNotifications(updated);
+    return updated;
+  }
+
+  @override
+  Future<Booking> markCompleted(String bookingId) async {
+    final index = _indexOf(bookingId);
+    final booking = _bookings[index];
+    if (booking.status != BookingStatus.upcoming) {
+      throw StateError('Only upcoming appointments can be completed.');
+    }
+    final updated = booking.copyWith(status: BookingStatus.completed);
+    _bookings[index] = updated;
+    _emit();
+    return updated;
+  }
+
+  @override
+  Future<Booking> markNoShow(String bookingId) async {
+    final index = _indexOf(bookingId);
+    final booking = _bookings[index];
+    if (booking.status != BookingStatus.upcoming) {
+      throw StateError('Only upcoming appointments can be marked no-show.');
+    }
+    final updated = booking.copyWith(status: BookingStatus.noShow);
+    _bookings[index] = updated;
+    _emit();
+    await _notifier.cancelForBooking(bookingId);
     return updated;
   }
 

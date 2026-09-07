@@ -7,6 +7,10 @@ abstract class BookingRepository {
 
   Stream<List<Booking>> watchByClient(String clientId);
 
+  Stream<List<Booking>> watchBySalon(String salonId);
+
+  Future<List<Booking>> getBookingsForSalon(String salonId, {DateTime? day});
+
   Future<void> syncStatuses({DateTime? now});
 
   Future<Booking> createBooking({
@@ -27,4 +31,8 @@ abstract class BookingRepository {
     required int durationMinutes,
     required List<Stylist> stylists,
   });
+
+  Future<Booking> markCompleted(String bookingId);
+
+  Future<Booking> markNoShow(String bookingId);
 }

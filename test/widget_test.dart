@@ -97,7 +97,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('Today'), findsOneWidget);
+    expect(find.text('Dashboard'), findsOneWidget);
     expect(find.text('Hello, Meera'), findsOneWidget);
   });
 }

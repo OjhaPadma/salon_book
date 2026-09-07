@@ -95,4 +95,24 @@ void main() {
     final seen = await repository.watchByClient('guest-client').first;
     expect(seen, hasLength(1));
   });
+
+  test('mark completed and no-show update status', () async {
+    final created = await book(stylistId: 'stylist-meera');
+    final completed = await repository.markCompleted(created.id);
+    expect(completed.status, BookingStatus.completed);
+
+    final second = await book(
+      at: DateTime(2026, 9, 7, 14),
+      stylistId: 'stylist-meera',
+    );
+    final noShow = await repository.markNoShow(second.id);
+    expect(noShow.status, BookingStatus.noShow);
+  });
+
+  test('watchBySalon emits salon bookings', () async {
+    await book(stylistId: 'stylist-meera');
+    final seen = await repository.watchBySalon('salon-noor').first;
+    expect(seen, isNotEmpty);
+    expect(seen.every((booking) => booking.salonId == 'salon-noor'), isTrue);
+  });
 }

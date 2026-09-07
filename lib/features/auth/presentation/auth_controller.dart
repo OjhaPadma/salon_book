@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:salon_book/core/constants/guest_ids.dart';
 import 'package:salon_book/data/repositories/seed_auth_repository.dart';
 import 'package:salon_book/domain/models/models.dart';
 import 'package:salon_book/domain/repositories/auth_repository.dart';
@@ -23,7 +24,7 @@ class AuthController extends ChangeNotifier {
   bool get isClient => user.isClient;
   bool get isStaff => user.isStaff;
 
-  String get clientId => user.isGuest ? 'guest-client' : user.id;
+  String get clientId => user.isGuest ? GuestIds.client : user.id;
 
   Future<User> signIn({required String email, required String password}) {
     return _repository.signIn(email: email, password: password);
