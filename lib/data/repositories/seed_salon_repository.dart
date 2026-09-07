@@ -15,12 +15,3 @@ class SeedSalonRepository implements SalonRepository {
     }
   }
 }
-
-class InMemoryBookingRepository implements BookingRepository {
-  final List<Booking> _bookings = [];
-
-  @override
-  Future<List<Booking>> getBookings({required String clientId}) async {
-    return _bookings.where((booking) => booking.clientId == clientId).toList(growable: false);
-  }
-}

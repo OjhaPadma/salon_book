@@ -3,8 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:salon_book/core/di/injection.dart';
 import 'package:salon_book/core/routing/app_shell.dart';
+import 'package:salon_book/domain/repositories/booking_repository.dart';
+import 'package:salon_book/domain/repositories/salon_repository.dart';
 import 'package:salon_book/features/appointments/presentation/screens/bookings_screen.dart';
-import 'package:salon_book/features/booking/presentation/screens/start_booking_screen.dart';
+import 'package:salon_book/features/booking/domain/availability_engine.dart';
+import 'package:salon_book/features/booking/presentation/bloc/booking_bloc.dart';
+import 'package:salon_book/features/booking/presentation/bloc/booking_event.dart';
+import 'package:salon_book/features/booking/presentation/screens/booking_flow_screen.dart';
 import 'package:salon_book/features/discovery/presentation/cubit/discovery_cubit.dart';
 import 'package:salon_book/features/discovery/presentation/screens/discover_screen.dart';
 import 'package:salon_book/features/discovery/presentation/screens/salon_profile_screen.dart';
@@ -38,9 +43,18 @@ GoRouter createAppRouter() {
                       GoRoute(
                         path: 'book',
                         parentNavigatorKey: rootNavigatorKey,
-                        builder: (context, state) => StartBookingScreen(
-                          salonId: state.pathParameters['salonId']!,
-                          serviceId: state.uri.queryParameters['serviceId'],
+                        builder: (context, state) => BlocProvider(
+                          create: (_) => BookingBloc(
+                            salonRepository: getIt<SalonRepository>(),
+                            bookingRepository: getIt<BookingRepository>(),
+                            engine: getIt<AvailabilityEngine>(),
+                          )..add(
+                            BookingStarted(
+                              salonId: state.pathParameters['salonId']!,
+                              serviceId: state.uri.queryParameters['serviceId'],
+                            ),
+                          ),
+                          child: const BookingFlowScreen(),
                         ),
                       ),
                     ],

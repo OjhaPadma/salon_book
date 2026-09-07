@@ -5,7 +5,3 @@ abstract class SalonRepository {
 
   Future<Salon?> getSalonById(String id);
 }
-
-abstract class BookingRepository {
-  Future<List<Booking>> getBookings({required String clientId});
-}

@@ -56,6 +56,13 @@ void main() {
 
     expect(find.text('Choose a time'), findsOneWidget);
     expect(find.text('Any available'), findsOneWidget);
+
+    await tester.tap(find.text('Choose a time'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Available times'), findsOneWidget);
+    expect(find.text('Review booking'), findsOneWidget);
   });
 
   testWidgets('bookings tab shows empty state', (tester) async {
