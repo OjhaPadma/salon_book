@@ -117,6 +117,14 @@ abstract final class AppTheme {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
+      chipTheme: ChipThemeData(
+        selectedColor: colorScheme.secondary.withValues(alpha: 0.65),
+        backgroundColor: colorScheme.surface,
+        side: BorderSide(color: colorScheme.outline),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        labelStyle: body.labelLarge,
+        showCheckmark: false,
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: colorScheme.primary,

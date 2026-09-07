@@ -29,8 +29,6 @@ class SalonCard extends StatelessWidget {
             NetworkImageFrame(
               url: salon.coverUrl,
               height: 168,
-              width: double.infinity,
-              borderRadius: 0,
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.lg),

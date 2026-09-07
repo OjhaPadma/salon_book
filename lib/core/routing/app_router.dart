@@ -1,25 +1,62 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:salon_book/core/di/injection.dart';
 import 'package:salon_book/core/routing/app_shell.dart';
 import 'package:salon_book/features/appointments/presentation/screens/bookings_screen.dart';
+import 'package:salon_book/features/booking/presentation/screens/start_booking_screen.dart';
+import 'package:salon_book/features/discovery/presentation/cubit/discovery_cubit.dart';
 import 'package:salon_book/features/discovery/presentation/screens/discover_screen.dart';
+import 'package:salon_book/features/discovery/presentation/screens/salon_profile_screen.dart';
 import 'package:salon_book/features/profile/presentation/screens/profile_screen.dart';
 
-final appRouter = GoRouter(
-  initialLocation: '/discover',
-  routes: [
-    StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
-      branches: [
-        StatefulShellBranch(
-          routes: [GoRoute(path: '/discover', builder: (context, state) => const DiscoverScreen())],
-        ),
-        StatefulShellBranch(
-          routes: [GoRoute(path: '/bookings', builder: (context, state) => const BookingsScreen())],
-        ),
-        StatefulShellBranch(
-          routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())],
-        ),
-      ],
-    ),
-  ],
-);
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
+GoRouter createAppRouter() {
+  return GoRouter(
+    navigatorKey: rootNavigatorKey,
+    initialLocation: '/discover',
+    routes: [
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/discover',
+                builder: (context, state) => BlocProvider(
+                  create: (_) => DiscoveryCubit(getIt())..load(),
+                  child: const DiscoverScreen(),
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'salons/:salonId',
+                    parentNavigatorKey: rootNavigatorKey,
+                    builder: (context, state) =>
+                        SalonProfileScreen(salonId: state.pathParameters['salonId']!),
+                    routes: [
+                      GoRoute(
+                        path: 'book',
+                        parentNavigatorKey: rootNavigatorKey,
+                        builder: (context, state) => StartBookingScreen(
+                          salonId: state.pathParameters['salonId']!,
+                          serviceId: state.uri.queryParameters['serviceId'],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/bookings', builder: (context, state) => const BookingsScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())],
+          ),
+        ],
+      ),
+    ],
+  );
+}
